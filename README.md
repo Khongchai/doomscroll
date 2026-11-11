@@ -1,6 +1,11 @@
 # doomscroll
 
-A personal feed of videos, blog posts, Bluesky posts and papers from a hand-picked list of people and engineering blogs, sorted by time. It is a static site on GitHub Pages; a scheduled GitHub Action fetches every source, merges the result with what was already stored, and redeploys.
+A personal feed of videos, blog posts, Bluesky posts and papers from a hand-picked list of people and engineering blogs, sorted by time. It is a static site on GitHub Pages; a GitHub Action runs every 30 minutes, fetches every source, merges the result with what was already stored, and commits and redeploys only when something changed.
+
+## What is live and what is not
+
+- **Bluesky is live.** `public.api.bsky.app` allows cross-origin requests, so `site/live.js` fetches each person's latest 30 posts on page load and every 5 minutes while the tab is visible, and merges them into the feed (a "N new · show" button appears if you have scrolled down).
+- **YouTube and blogs update every 30 minutes** (GitHub may delay scheduled runs). Their RSS endpoints send no `Access-Control-Allow-Origin` header, so the browser cannot read them directly. Making them live needs a small CORS proxy, for example a Cloudflare Worker that fetches only the feed URLs in `scripts/people.mjs`; `live.js` would then fetch through it the same way it fetches Bluesky.
 
 It has three modes:
 
@@ -21,9 +26,10 @@ site/            everything GitHub Pages serves, no build step
   render.js      DOM helpers, cards, YouTube click-to-play
   recommend.js   recommender and in-browser query embedding
   history.js     localStorage: per-item interaction history and UI prefs
+  live.js        in-browser Bluesky fetch and merge
   data/items.json      generated: { meta, items }
   data/embeddings.bin  generated: int8 vectors, 384 per row
-.github/workflows/update.yml   every 3 h: build data, commit it, deploy Pages
+.github/workflows/update.yml   every 30 min: build data; if it changed, commit and deploy Pages
 ```
 
 ## Data
@@ -56,6 +62,8 @@ Items with no `date` (Lamport's papers, IQ articles, Wikipedia concepts, classic
    - Inigo Quilez: the article index at `iquilezles.org/articles/`, plus the first paragraph of each article (fetched once).
    - Wikipedia: REST summary for each seed concept, plus two `morelike:` related pages per seed. Requests are spaced 250 ms apart with backoff on 429, because Wikipedia rate-limits hard. Seeds already present are skipped on later runs.
 3. Embeds new non-Bluesky items with `Xenova/all-MiniLM-L6-v2` (q8, 384 dims) through `@huggingface/transformers` in Node, normalises, quantises to int8 and writes them in item order.
+
+4. Writes nothing if the items are identical to the previous run, so `meta.generatedAt` is the time of the last change.
 
 Env flags: `SKIP_ARCHIVE=1` skips yt-dlp, `FORCE_ARCHIVE=1` runs it regardless of age.
 

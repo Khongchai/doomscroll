@@ -537,6 +537,16 @@ async function main() {
     ],
   };
 
+  const previousJson = existsSync(ITEMS_PATH) ? JSON.parse(await readFile(ITEMS_PATH, "utf8")) : null;
+  const unchanged =
+    previousJson &&
+    JSON.stringify(previousJson.items) === JSON.stringify(out) &&
+    JSON.stringify(previousJson.meta.authors) === JSON.stringify(meta.authors) &&
+    previousJson.meta.archiveAt === meta.archiveAt;
+  if (unchanged) {
+    console.log(`no changes (${out.length} items)`);
+    return;
+  }
   await writeFile(ITEMS_PATH, JSON.stringify({ meta, items: out }));
   await writeFile(EMB_PATH, Buffer.from(bin.buffer));
   const counts = out.reduce((acc, i) => ((acc[i.kind] = (acc[i.kind] ?? 0) + 1), acc), {});

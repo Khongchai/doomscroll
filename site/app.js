@@ -1,6 +1,9 @@
 import { h, card, spotlight, relativeAge } from "./render.js";
 import { record, readPref, writePref } from "./history.js";
 import { createRecommender } from "./recommend.js";
+import { fetchLiveBluesky, mergeLive } from "./live.js";
+
+const LIVE_INTERVAL = 5 * 60 * 1000;
 
 const PAGE = 30;
 const LIBRARY_KINDS = new Set(["paper", "article", "concept"]);
@@ -58,6 +61,7 @@ function setupFeed(data, authors, recommender) {
   let results = [];
   let shown = 0;
   let searchToken = 0;
+  let liveAt = null;
 
   const haystack = new Map();
   const textFor = (item) => {
@@ -139,8 +143,9 @@ function setupFeed(data, authors, recommender) {
     shown = 0;
     list.replaceChildren();
     renderMore();
-    const updated = data.meta.generatedAt ? ` · updated ${relativeAge(data.meta.generatedAt)}` : "";
-    status.textContent = `${results.length.toLocaleString()} items${updated}`;
+    const updated = data.meta.generatedAt ? ` · videos and blogs updated ${relativeAge(data.meta.generatedAt)}` : "";
+    const live = liveAt ? ` · Bluesky live` : "";
+    status.textContent = `${results.length.toLocaleString()} items${updated}${live}`;
     if (!results.length) list.append(h("li", { class: "empty" }, "Nothing matches."));
   }
 
@@ -161,6 +166,24 @@ function setupFeed(data, authors, recommender) {
   }, { rootMargin: "800px" }).observe($("sentinel"));
 
   refresh();
+
+  return {
+    liveUpdated(added) {
+      liveAt = Date.now();
+      const atTop = window.scrollY < 300;
+      if (added && atTop && !query) {
+        refresh();
+        return;
+      }
+      if (added) {
+        status.replaceChildren(
+          h("button", { class: "chip", type: "button", onclick: () => { window.scrollTo(0, 0); refresh(); } }, `${added} new · show`),
+        );
+        return;
+      }
+      if (!semantic) refresh();
+    },
+  };
 }
 
 function setupRandom(data, authors) {
@@ -292,7 +315,15 @@ async function main() {
   const authors = new Map(data.meta.authors.map((a) => [a.id, a]));
   const recommender = createRecommender({ items: data.items, vectors: data.vectors, dim: data.meta.dim });
 
-  setupFeed(data, authors, recommender);
+  const feed = setupFeed(data, authors, recommender);
+  const pullLive = async () => {
+    const fresh = await fetchLiveBluesky(data.meta.authors).catch(() => []);
+    feed.liveUpdated(mergeLive(data.items, fresh));
+  };
+  pullLive();
+  setInterval(() => {
+    if (document.visibilityState === "visible") pullLive();
+  }, LIVE_INTERVAL);
   const modes = { random: setupRandom(data, authors), next: setupNext(data, authors, recommender) };
   const views = { feed: $("feed-view"), random: $("random-view"), next: $("next-view") };
   let route = "feed";
