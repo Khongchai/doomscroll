@@ -82,6 +82,7 @@ export const blogs = [
   { id: "cloudflare", name: "Cloudflare", feeds: ["https://blog.cloudflare.com/rss/"] },
   { id: "netflix", name: "Netflix TechBlog", feeds: ["https://netflixtechblog.com/feed"] },
   { id: "stripe", name: "Stripe", feeds: ["https://stripe.com/blog/feed.rss"] },
+  { id: "spotify", name: "Spotify Engineering", feeds: ["https://engineering.atspotify.com/feed/"] },
   { id: "dropbox", name: "Dropbox Tech", feeds: ["https://dropbox.tech/feed"] },
   { id: "slack", name: "Slack Engineering", feeds: ["https://slack.engineering/feed/"] },
   { id: "github", name: "GitHub Engineering", feeds: ["https://github.blog/engineering/feed/"] },
