@@ -66,6 +66,13 @@ export const people = [
     links: ["https://raymyers.org/"],
   },
   {
+    id: "matklad",
+    name: "matklad (Alex Kladov)",
+    feeds: ["https://matklad.github.io/feed.xml"],
+    archives: ["https://matklad.github.io/"],
+    links: ["https://matklad.github.io/"],
+  },
+  {
     id: "computerphile",
     name: "Computerphile",
     youtube: { channelId: "UC9-y-6csu5WGm29I7JiwpnA", handle: "Computerphile" },
@@ -102,7 +109,6 @@ export const blogs = [
   { id: "danluu", name: "Dan Luu", feeds: ["https://danluu.com/atom.xml"] },
   { id: "jvns", name: "Julia Evans", feeds: ["https://jvns.ca/atom.xml"] },
   { id: "ciechanowski", name: "Bartosz Ciechanowski", feeds: ["https://ciechanow.ski/atom.xml"] },
-  { id: "matklad", name: "matklad", feeds: ["https://matklad.github.io/feed.xml"] },
   { id: "mitchellh", name: "Mitchell Hashimoto", feeds: ["https://mitchellh.com/feed.xml"] },
   { id: "raph", name: "Raph Levien", feeds: ["https://raphlinus.github.io/feed.xml"] },
 ];

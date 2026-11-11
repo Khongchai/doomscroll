@@ -196,6 +196,15 @@ async function fetchBlogFeed(person, url) {
   });
 }
 
+async function fetchDatedArchive(person, pageUrl) {
+  const html = await fetchText(pageUrl);
+  const entries = html.matchAll(/<time[^>]*datetime="([^"]+)"[^>]*>[\s\S]*?<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g);
+  return [...entries].map(([, datetime, href, label]) => {
+    const url = new URL(href, pageUrl).href;
+    return { id: `blog:${url}`, kind: "post", author: person.id, title: plain(label, 300), text: "", url, date: isoDate(datetime) };
+  });
+}
+
 async function categoryLinks(pageUrl) {
   const html = await fetchText(pageUrl);
   const origin = new URL(pageUrl).origin;
@@ -490,6 +499,7 @@ async function main() {
       if (doArchive) tasks.push(run(`${person.id} youtube archive`, () => fetchYoutubeArchive(person)));
     }
     for (const url of person.feeds ?? []) tasks.push(run(`${person.id} feed`, () => fetchBlogFeed(person, url)));
+    for (const url of person.archives ?? []) tasks.push(run(`${person.id} archive page`, () => fetchDatedArchive(person, url)));
     if (person.bluesky) tasks.push(run(`${person.id} bluesky`, () => fetchBluesky(person)));
   }
   for (const blog of blogs) {

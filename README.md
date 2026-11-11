@@ -91,7 +91,7 @@ The first full build takes several minutes, mostly Wikipedia rate limits and yt-
 
 ## Adding a source
 
-- A person: add an entry to `people` in `scripts/people.mjs` with any of `youtube: { channelId }`, `bluesky` (handle), `feeds` (RSS/Atom URLs), `links`. Find a channel id with `curl -sL https://www.youtube.com/@handle | grep -o '"externalId":"UC[^"]*"'`.
+- A person: add an entry to `people` in `scripts/people.mjs` with any of `youtube: { channelId }`, `bluesky` (handle), `feeds` (RSS/Atom URLs), `archives` (pages that list every post as `<time datetime>` followed by a link, used for the full back catalogue when the RSS feed only has recent posts; matklad's homepage is one), `links`. Find a channel id with `curl -sL https://www.youtube.com/@handle | grep -o '"externalId":"UC[^"]*"'`.
 - An engineering blog: add to `blogs` with `feeds`.
 - A concept: add a Wikipedia title to `seedConcepts`; a paper or essay: add to `classics`.
 - A new library scraper: write a `fetchX` in `build.mjs` that returns items with `date: null` and push it onto `tasks` in `main()`.
