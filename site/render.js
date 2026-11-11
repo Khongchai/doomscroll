@@ -40,7 +40,7 @@ export function when(item) {
 
 export function relativeAge(iso) {
   const mins = (Date.now() - new Date(iso).getTime()) / 60000;
-  if (mins < 60) return `${Math.round(mins)} min ago`;
+  if (mins < 60) return `${Math.max(1, Math.round(mins))} min ago`;
   if (mins < 60 * 24) return `${Math.round(mins / 60)} h ago`;
   return `${Math.round(mins / 1440)} days ago`;
 }

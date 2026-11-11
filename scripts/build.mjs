@@ -45,17 +45,6 @@ async function fetchJson(url) {
   return JSON.parse(await fetchText(url));
 }
 
-const wikiQueue = { last: 0 };
-
-async function fetchWikiJson(url) {
-  const gap = 250;
-  const now = Date.now();
-  const at = Math.max(now, wikiQueue.last + gap);
-  wikiQueue.last = at;
-  if (at > now) await new Promise((r) => setTimeout(r, at - now));
-  return fetchJson(url);
-}
-
 async function mapLimit(list, limit, fn) {
   const out = new Array(list.length);
   let next = 0;
@@ -323,53 +312,79 @@ async function fetchIqArticles(previous) {
   });
 }
 
-async function wikiSummary(title) {
-  const s = await fetchWikiJson(
-    `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`,
-  );
-  if (s.type === "disambiguation" || !s.extract) return null;
+const WIKI_API = "https://en.wikipedia.org/w/api.php";
+const WIKI_GAP_MS = 1000;
+const WIKI_PAGE_PROPS =
+  "prop=extracts|pageimages|info|pageprops&exintro=1&explaintext=1&exlimit=20&piprop=thumbnail&pithumbsize=400&inprop=url&ppprop=disambiguation";
+
+class WikiThrottled extends Error {}
+
+function createWikiClient() {
+  let last = 0;
+  return async function wikiQuery(params) {
+    const wait = last + WIKI_GAP_MS - Date.now();
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    last = Date.now();
+    const res = await fetch(`${WIKI_API}?action=query&format=json&formatversion=2&redirects=1&${params}`, {
+      headers: { "user-agent": USER_AGENT },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (res.status === 429) throw new WikiThrottled("Wikipedia rate limit (429)");
+    if (!res.ok) throw new Error(`${res.status} wikipedia`);
+    return res.json();
+  };
+}
+
+function wikiPageItem(page) {
+  if (page.missing || page.pageprops?.disambiguation !== undefined || !page.extract) return null;
   return {
-    id: `wiki:${s.titles?.canonical ?? s.title}`,
+    id: `wiki:${page.title.replace(/ /g, "_")}`,
     kind: "concept",
     author: "wikipedia",
-    title: s.title,
-    text: plain(s.extract),
-    url: s.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
-    img: s.thumbnail?.source,
+    title: page.title,
+    text: plain(page.extract),
+    url: page.fullurl ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title.replace(/ /g, "_"))}`,
+    img: page.thumbnail?.source,
     date: null,
   };
 }
 
-async function wikiRelated(title, limit) {
-  const data = await fetchWikiJson(
-    `https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&srlimit=${limit}&srsearch=${encodeURIComponent(`morelike:${title}`)}`,
-  );
-  return (data.query?.search ?? []).map((r) => r.title);
+function resolveTitle(query, title) {
+  let t = title;
+  for (const step of [query.normalized ?? [], query.redirects ?? []]) {
+    t = step.find((n) => n.from === t)?.to ?? t;
+  }
+  return t;
 }
 
 async function fetchConcepts(previous) {
   const known = new Set([...previous.values()].filter((i) => i.kind === "concept" && !i.related).map((i) => i.seed));
   const seeds = seedConcepts.filter((t) => !known.has(t));
-  const related = (
-    await mapLimit(seeds, 2, async (t) => {
-      try {
-        return (await wikiRelated(t, 2)).map((r) => ({ title: r, seed: t, related: true }));
-      } catch {
-        return [];
+  const wikiQuery = createWikiClient();
+  const out = [];
+  try {
+    for (let i = 0; i < seeds.length; i += 20) {
+      const chunk = seeds.slice(i, i + 20);
+      const data = await wikiQuery(`${WIKI_PAGE_PROPS}&titles=${encodeURIComponent(chunk.join("|"))}`);
+      const pages = new Map((data.query?.pages ?? []).map((p) => [p.title, p]));
+      for (const seed of chunk) {
+        const page = pages.get(resolveTitle(data.query ?? {}, seed));
+        const item = page && wikiPageItem(page);
+        if (!item) continue;
+        const related = await wikiQuery(
+          `${WIKI_PAGE_PROPS}&generator=search&gsrlimit=2&gsrsearch=${encodeURIComponent(`morelike:${page.title}`)}`,
+        );
+        for (const p of related.query?.pages ?? []) {
+          const r = wikiPageItem(p);
+          if (r) out.push({ ...r, seed, related: true });
+        }
+        out.push({ ...item, seed });
       }
-    })
-  ).flat();
-  const wanted = [...seeds.map((t) => ({ title: t, seed: t })), ...related];
-  const results = await mapLimit(wanted, 2, async (w) => {
-    try {
-      const item = await wikiSummary(w.title);
-      return item && { ...item, seed: w.seed, related: w.related || undefined };
-    } catch (error) {
-      console.warn(`wiki ${w.title}: ${error.message}`);
-      return null;
     }
-  });
-  return results.filter(Boolean);
+  } catch (error) {
+    console.warn(`wikipedia stopped early, the rest is fetched on a later run: ${error.message}`);
+  }
+  return out;
 }
 
 function classicItems() {
