@@ -1,0 +1,16 @@
+{
+  "name": "doomscroll",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:data": "node scripts/build.mjs",
+    "serve": "python3 -m http.server 8080 --directory site"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "4.3.1",
+    "fast-xml-parser": "^5.12.0"
+  }
+}

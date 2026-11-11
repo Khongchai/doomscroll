@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doomscroll</title>
+<meta name="description" content="One time-sorted feed of videos, posts and papers from a hand-picked list of people, with random and recommendation modes.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23e8590c'/><path d='M9 10h14M9 16h14M9 22h9' stroke='white' stroke-width='3' stroke-linecap='round'/></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#feed">doomscroll</a>
+  <nav class="tabs" aria-label="Mode">
+    <a href="#feed" data-route="feed">Feed</a>
+    <a href="#random" data-route="random">Random</a>
+    <a href="#next" data-route="next">Next</a>
+  </nav>
+</header>
+
+<main id="feed-view" class="view" hidden>
+  <div class="controls">
+    <input id="search" type="search" placeholder="Search everything" autocomplete="off" spellcheck="false">
+    <div id="kinds" class="chips" role="group" aria-label="Type"></div>
+    <div id="authors" class="chips authors" role="group" aria-label="People"></div>
+  </div>
+  <p id="feed-status" class="status"></p>
+  <ol id="feed-list" class="feed"></ol>
+  <div id="sentinel"></div>
+</main>
+
+<main id="random-view" class="view stage" hidden>
+  <div id="random-card" class="spot"></div>
+  <div class="stage-actions">
+    <div id="random-kinds" class="chips" role="group" aria-label="Random type"></div>
+    <button id="random-next" class="primary">Another <kbd>space</kbd></button>
+  </div>
+</main>
+
+<main id="next-view" class="view stage" hidden>
+  <div id="next-card" class="spot"></div>
+  <div class="stage-actions">
+    <button id="next-open" class="primary">Open <kbd>o</kbd></button>
+    <button id="next-like">More like this <kbd>l</kbd></button>
+    <button id="next-skip">Skip <kbd>s</kbd></button>
+    <button id="next-nope">Not for me <kbd>x</kbd></button>
+  </div>
+  <form id="mood-form" class="mood">
+    <input id="mood" type="text" placeholder="In the mood for… (e.g. queues and randomness)" autocomplete="off">
+    <span id="mood-status" class="status"></span>
+  </form>
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
