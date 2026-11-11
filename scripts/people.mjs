@@ -73,6 +73,13 @@ export const people = [
     links: ["https://matklad.github.io/"],
   },
   {
+    id: "servile",
+    name: "Valentina Servile",
+    feeds: ["https://oooops.dev/rss.xml"],
+    bluesky: "valentinaservile.bsky.social",
+    links: ["https://oooops.dev/blog/"],
+  },
+  {
     id: "computerphile",
     name: "Computerphile",
     youtube: { channelId: "UC9-y-6csu5WGm29I7JiwpnA", handle: "Computerphile" },
